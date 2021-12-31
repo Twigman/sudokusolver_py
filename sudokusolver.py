@@ -1,4 +1,5 @@
 import numpy as np
+from random import choice
 
 
 DIM = 3
@@ -18,7 +19,7 @@ def is_valid(v: np.array) -> bool():
         return True
 
 
-def check_square(A: np.array, n: int) -> bool:
+def vectorize_square(A: np.array, n: int) -> np.array:
     '''
     0 1 2
     3 4 5
@@ -32,7 +33,16 @@ def check_square(A: np.array, n: int) -> bool:
             v[i] = A[row, col]
             i += 1
 
-    return is_valid(v)
+    return v
+
+
+def check_square(A: np.array, n: int) -> bool:
+    '''
+    0 1 2
+    3 4 5
+    6 7 8
+    '''
+    return is_valid(vectorize_square(A, n))
 
 
 def check_row(A: np.array, row: int) -> bool:
@@ -41,6 +51,101 @@ def check_row(A: np.array, row: int) -> bool:
 
 def check_col(A: np.array, col: int) -> bool:
     return is_valid(A[ : , col])
+
+
+def max_values_in_row(A: np.array) -> (int, int, np.array):
+    max_len = 0
+    row = 0
+    vals = np.zeros(1)
+    for i in range(0, DIM_GAME):
+        v = A[i]
+        # remove 0 values
+        v = v[v != 0]
+        
+        if len(v) > max_len and len(v) < DIM_GAME:
+            max_len = len(v)
+            row = i
+            vals = v
+    return (row, max_len, vals)
+
+
+def max_values_in_col(A: np.array) -> (int, int, np.array):
+    max_len = 0
+    col = 0
+    vals = np.zeros(1)
+    for j in range(0, DIM_GAME):
+        v = A[ : , j]
+        # remove 0 values
+        v = v[v != 0]
+        
+        if len(v) > max_len and len(v) < DIM_GAME:
+            max_len = len(v)
+            col = j
+            vals = v
+    return (col, max_len, vals)
+
+
+def max_values_in_square(A: np.array) -> (int, int, np.array):
+    max_len = 0
+    square = 0
+    vals = np.zeros(1)
+    for i in range(0, DIM_GAME):
+        v = vectorize_square(A, i)
+        # remove 0 values
+        v = v[v != 0]
+        
+        if len(v) > max_len and len(v) < DIM_GAME:
+            max_len = len(v)
+            square = i
+            vals = v
+    return (square, max_len, vals)
+
+
+def make_guess(vals: np.array) -> int:
+    return choice([i for i in range(1, DIM_GAME + 1) if i not in vals])
+
+
+def enter_guess_in_row(A: np.array, guess: int, row: int) -> (np.array, int):
+    col = np.where(A[row] == 0)
+    A[row, col] = guess
+    
+    return A, row, col
+
+
+def is_valid_value(A: np.array, row: int, col: int) -> bool:
+    # TODO
+    # row
+    # col
+    # square
+    return False
+
+def is_solved(A: np.array) -> bool:
+
+
+
+def pick_good_field(A: np.array) -> (int, int):
+    square, max_square_val, square_vals = max_values_in_square(A)
+    row, max_row_val, row_vals = max_values_in_row(A)
+    col, max_col_val, col_vals = max_values_in_col(A)
+
+    if max_square_val == 0 and max_row_val == 0 and max_col_val == 0:
+        # solved!
+        # TODO
+    if max_square_val > max_row_val and max_square_val > max_col_val:
+        # square
+        guess = make_guess(square_vals)
+        # TODO
+        
+    elif max_row_val > max_col_val:
+        # row
+        guess = make_guess(row_vals)
+        #A, i, j = enter_guess_in_row(A, guess, row)
+        # TODO
+    else:
+        # col
+        guess = make_guess(col_vals)
+        # TODO
+
 
 
 def print_sudoku(A: np.array):
@@ -60,11 +165,9 @@ def print_sudoku(A: np.array):
 
 
 def solve(A: np.array) -> np.array:
+    row, col = pick_good_field(A)
 
-    A[3,3] = 5
-
-    print(A)
-
+    return A
 
 A = np.zeros((DIM_GAME, DIM_GAME))
 
@@ -81,5 +184,5 @@ example1 = np.array([
 ])
 
 
-#A = solve(example1)
-print_sudoku(example1)
+A = solve(example1)
+#print_sudoku(example1)
