@@ -112,6 +112,7 @@ def enter_guess_in_row(A: np.array, guess: int, row: int) -> (np.array, int):
     return A, row, col
 
 
+
 def is_valid_value(A: np.array, row: int, col: int) -> bool:
     # TODO
     # row
@@ -120,31 +121,34 @@ def is_valid_value(A: np.array, row: int, col: int) -> bool:
     return False
 
 def is_solved(A: np.array) -> bool:
+    return False
 
 
-
-def pick_good_field(A: np.array) -> (int, int):
+def simple_field_pick(A: np.array) -> (int, int, np.array):
     square, max_square_val, square_vals = max_values_in_square(A)
     row, max_row_val, row_vals = max_values_in_row(A)
     col, max_col_val, col_vals = max_values_in_col(A)
 
-    if max_square_val == 0 and max_row_val == 0 and max_col_val == 0:
+    
+    #if max_square_val == 0 and max_row_val == 0 and max_col_val == 0:
         # solved!
         # TODO
-    if max_square_val > max_row_val and max_square_val > max_col_val:
+    #if max_square_val > max_row_val and max_square_val > max_col_val:
         # square
-        guess = make_guess(square_vals)
+
+        #guess = make_guess(square_vals)
         # TODO
         
-    elif max_row_val > max_col_val:
+    #elif max_row_val > max_col_val:
         # row
-        guess = make_guess(row_vals)
+        #guess = make_guess(row_vals)
         #A, i, j = enter_guess_in_row(A, guess, row)
         # TODO
-    else:
+    #else:
         # col
-        guess = make_guess(col_vals)
+        #guess = make_guess(col_vals)
         # TODO
+    #return A
 
 
 
@@ -164,8 +168,15 @@ def print_sudoku(A: np.array):
             print('-------------------------------')
 
 
+def get_square(row, col) -> int:
+    factor = (row - (row % DIM)) / DIM
+    summand = (col - (col % DIM)) / DIM
+
+    return factor * DIM + summand
+
+
 def solve(A: np.array) -> np.array:
-    row, col = pick_good_field(A)
+    #row, col = simple_field_pick(A)
 
     return A
 
