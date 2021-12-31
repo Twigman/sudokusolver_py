@@ -2,6 +2,7 @@ import numpy as np
 
 
 DIM = 3
+DIM_GAME = DIM*DIM
 CONTROL_VEC = np.arange(1, DIM * DIM + 1)
 CHECKSUM = np.sum(CONTROL_VEC)
 
@@ -42,13 +43,30 @@ def check_col(A: np.array, col: int) -> bool:
     return is_valid(A[ : , col])
 
 
-def solve(A: np.array):
+def print_sudoku(A: np.array):
+    row_counter = 0
+    col_counter = 0
+
+    for row in range(0, DIM_GAME):
+        for col in range(0, DIM_GAME):
+            print(str(A[row, col]) + '  ', end='')
+            col_counter += 1
+            if col_counter % DIM == 0 and col_counter % DIM_GAME != 0:
+                print('|  ', end='')
+        print('\n')
+        row_counter += 1
+        if row_counter % DIM == 0 and row_counter < DIM_GAME:
+            print('-------------------------------')
+
+
+def solve(A: np.array) -> np.array:
+
     A[3,3] = 5
 
     print(A)
 
 
-A = np.zeros((DIM*DIM, DIM*DIM))
+A = np.zeros((DIM_GAME, DIM_GAME))
 
 example1 = np.array([
     [0, 0, 9, 0, 0, 0, 0, 1, 5],
@@ -63,4 +81,5 @@ example1 = np.array([
 ])
 
 
-solve(example1)
+#A = solve(example1)
+print_sudoku(example1)
