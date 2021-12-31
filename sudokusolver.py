@@ -1,39 +1,45 @@
 import numpy as np
 
-DIM_SQUARE = 3
-DIM_GAME = 3
+
+DIM = 3
+CONTROL_VEC = np.arange(1, DIM * DIM + 1)
+CHECKSUM = np.sum(CONTROL_VEC)
+
+
+def is_valid(v: np.array) -> bool():
+    v = np.unique(v)
+
+    if len(v) != 9:
+        return False
+    elif np.sum(v) != CHECKSUM:
+        return False
+    else:
+        return True
+
 
 def check_square(A: np.array, n: int) -> bool:
-    
-    # 0 1 2
-    # 3 4 5
-    # 6 7 8
+    '''
+    0 1 2
+    3 4 5
+    6 7 8
+    '''
+    v = np.zeros(9)
+    i = 0
 
-    # 0:    (0, 0) - (0, 2)
-    #       (1, 0) - (1, 2)
-    #       (2, 0) - (2, 2)
+    for col in range(DIM * (n % DIM), DIM * (n % DIM) + DIM):
+        for row in range(n - (n % DIM), n - (n % DIM) + DIM):
+            v[i] = A[row, col]
+            i += 1
 
-    # 1:    (0, 3) - (0, 5)
-    #       (1, 3) - (1, 5)
-    #       (2, 3) - (2, 5)
+    return is_valid(v)
 
-    # 2:    (0, 6) - (0, 8)
-    #       (1, 6) - (1, 8)
-    #       (2, 6) - (2, 8)
 
-    # 5:    (3, 6) - (3, 8)
-    #       (4, 6) - (4, 8)
-    #       (5, 6) - (5, 8)
+def check_row(A: np.array, row: int) -> bool:
+    return is_valid(A[row])
 
-    # [row, col]
-    # vertikal
-    for col in range(DIM_SQUARE * (n % DIM_SQUARE), DIM_SQUARE * (n % DIM_SQUARE) + DIM_SQUARE):
-        # horizontal
-        print('\n')
-        for row in range(n - (n % DIM_SQUARE), n - (n % DIM_SQUARE) + DIM_SQUARE):
-            print(str(row) + ', ' + str(col))
-        
-    return False
+
+def check_col(A: np.array, col: int) -> bool:
+    return is_valid(A[ : , col])
 
 
 def solve(A: np.array):
@@ -42,7 +48,7 @@ def solve(A: np.array):
     print(A)
 
 
-A = np.zeros((DIM_SQUARE*DIM_GAME, DIM_SQUARE*DIM_GAME))
+A = np.zeros((DIM*DIM, DIM*DIM))
 
 example1 = np.array([
     [0, 0, 9, 0, 0, 0, 0, 1, 5],
@@ -56,5 +62,5 @@ example1 = np.array([
     [7, 2, 0, 0, 1, 0, 0, 0, 9]
 ])
 
-check_square(A, 6)
-#solve(example1)
+
+solve(example1)
