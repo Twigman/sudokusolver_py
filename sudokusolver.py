@@ -28,8 +28,8 @@ def vectorize_square(A: np.array, n: int) -> np.array:
     v = np.zeros(9)
     i = 0
 
-    for col in range(DIM * (n % DIM), DIM * (n % DIM) + DIM):
-        for row in range(n - (n % DIM), n - (n % DIM) + DIM):
+    for row in range(n - (n % DIM), n - (n % DIM) + DIM):
+        for col in range(DIM * (n % DIM), DIM * (n % DIM) + DIM):
             v[i] = A[row, col]
             i += 1
 
@@ -124,12 +124,45 @@ def is_solved(A: np.array) -> bool:
     return False
 
 
+def collect_vec_info(v: np.array) -> (np.array, int):
+    '''
+    Returns useful vector information.
+
+    Args:
+        v (np.array): input vector
+    Returns:
+        np.array: vector without zero values (clean vector)
+        int: clean vector length
+    '''
+    # remove 0 values
+    v = v[v != 0]
+
+    return v, len(v)
+
+
+
+def choose_field_in_row(A: np.array, row: int) -> (int, int):
+    # fields which contain 0
+    colList = np.where(A[row] == 0)
+    
+    for col in colList:
+        # collect col information
+        v, v_len = collect_vec_info(A[ : , col])
+        # collect row information
+        square = get_square(row, col)
+        v_square = vectorize_square(A, square)
+
+
+    return None
+
+
 def simple_field_pick(A: np.array) -> (int, int, np.array):
     square, max_square_val, square_vals = max_values_in_square(A)
     row, max_row_val, row_vals = max_values_in_row(A)
     col, max_col_val, col_vals = max_values_in_col(A)
 
-    
+    choose_field_in_row(A, row)
+
     #if max_square_val == 0 and max_row_val == 0 and max_col_val == 0:
         # solved!
         # TODO
@@ -148,7 +181,7 @@ def simple_field_pick(A: np.array) -> (int, int, np.array):
         # col
         #guess = make_guess(col_vals)
         # TODO
-    #return A
+    return None
 
 
 
@@ -177,6 +210,7 @@ def get_square(row, col) -> int:
 
 def solve(A: np.array) -> np.array:
     #row, col = simple_field_pick(A)
+    simple_field_pick(A)
 
     return A
 
