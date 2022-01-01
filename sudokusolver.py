@@ -11,7 +11,7 @@ CHECKSUM = np.sum(CONTROL_VEC)
 def is_valid(v: np.array) -> bool():
     v = np.unique(v)
 
-    if len(v) != 9:
+    if len(v) != DIM_GAME:
         return False
     elif np.sum(v) != CHECKSUM:
         return False
@@ -53,8 +53,16 @@ def check_col(A: np.array, col: int) -> bool:
     return is_valid(A[ : , col])
 
 
-def max_values_in_row(A: np.array) -> (int, int, np.array):
-    max_len = 0
+def row_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
+    '''
+    Returns the row index for which the most values are available.
+
+    Args:
+        A (np.array): sudoku as a matrix
+    Returns:
+        int: row index
+        np.array: values which are included
+    '''
     row = 0
     vals = np.zeros(1)
     for i in range(0, DIM_GAME):
@@ -62,15 +70,22 @@ def max_values_in_row(A: np.array) -> (int, int, np.array):
         # remove 0 values
         v = v[v != 0]
         
-        if len(v) > max_len and len(v) < DIM_GAME:
-            max_len = len(v)
+        if len(v) > len(vals) and len(v) < DIM_GAME:
             row = i
             vals = v
-    return (row, max_len, vals)
+    return row, vals
 
 
-def max_values_in_col(A: np.array) -> (int, int, np.array):
-    max_len = 0
+def col_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
+    '''
+    Returns the col index which for which the most values are available.
+
+    Args:
+        A (np.array): sudoku as a matrix
+    Returns:
+        int: col index
+        np.array: values which are included
+    '''
     col = 0
     vals = np.zeros(1)
     for j in range(0, DIM_GAME):
@@ -78,27 +93,33 @@ def max_values_in_col(A: np.array) -> (int, int, np.array):
         # remove 0 values
         v = v[v != 0]
         
-        if len(v) > max_len and len(v) < DIM_GAME:
-            max_len = len(v)
+        if len(v) > len(vals) and len(v) < DIM_GAME:
             col = j
             vals = v
-    return (col, max_len, vals)
+    return col, vals
 
 
-def max_values_in_square(A: np.array) -> (int, int, np.array):
-    max_len = 0
+def square_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
+    '''
+    Returns the number of the square which contains the most values.
+
+    Args:
+        A (np.array): sudoku as a matrix
+    Returns:
+        int: square number
+        np.array: values which are included
+    '''
     square = 0
-    vals = np.zeros(1)
+    vals = np.zeros(0)
     for i in range(0, DIM_GAME):
         v = vectorize_square(A, i)
         # remove 0 values
         v = v[v != 0]
         
-        if len(v) > max_len and len(v) < DIM_GAME:
-            max_len = len(v)
+        if len(v) > len(vals) and len(v) < DIM_GAME:
             square = i
             vals = v
-    return (square, max_len, vals)
+    return square, vals
 
 
 def make_guess(vals: np.array) -> int:
@@ -124,7 +145,7 @@ def is_solved(A: np.array) -> bool:
     return False
 
 
-def collect_vec_info(v: np.array) -> (np.array, int):
+def collect_vec_info(v: np.array) -> np.array:
     '''
     Returns useful vector information.
 
@@ -132,36 +153,186 @@ def collect_vec_info(v: np.array) -> (np.array, int):
         v (np.array): input vector
     Returns:
         np.array: vector without zero values (clean vector)
-        int: clean vector length
     '''
     # remove 0 values
-    v = v[v != 0]
-
-    return v, len(v)
+    return v[v != 0]
 
 
+def choose_field_in_row(A: np.array, row: int) -> tuple[int, np.array]:
+    '''
+    Returns the col index for which the most values are available.
 
-def choose_field_in_row(A: np.array, row: int) -> (int, int):
+    Args:
+        A (np.array): sudoku as a matrix
+        row (int): row to look for the best column in it
+    Returns:
+        int: column index for which most of the information is provided
+        np.array: numbers to exclude from guess
+    '''
     # fields which contain 0
     colList = np.where(A[row] == 0)
+    best_col = -1
+    best_col_info = np.zeros(0)
     
-    for col in colList:
+    for col in np.nditer(colList):
         # collect col information
-        v, v_len = collect_vec_info(A[ : , col])
+        v_col = collect_vec_info(A[ : , col])
+        # collect square information
+        v_clean_square = collect_vec_info(vectorize_square(A, get_square(row, col)))
+        col_info = np.unique(np.concatenate((v_col, v_clean_square)))
+
+        if len(col_info) > len(best_col_info):
+            best_col = col
+            best_col_info = col_info
+
+    return best_col, best_col_info
+
+
+def choose_field_in_col(A: np.array, col: int) -> tuple[int, np.array]:
+    '''
+    Returns the col index for which the most values are available.
+
+    Args:
+        A (np.array): sudoku as a matrix
+        col (int): col to look for the best row in it
+    Returns:
+        int: row index for which most of the information is provided
+        np.array: numbers to exclude from guess
+    '''
+    # fields which contain 0
+    rowList = np.where(A[ : , col] == 0)
+    best_row = -1
+    best_row_info = np.zeros(0)
+    
+    for row in np.nditer(rowList):
         # collect row information
-        square = get_square(row, col)
-        v_square = vectorize_square(A, square)
+        v_row = collect_vec_info(A[row])
+        # collect square information
+        v_clean_square = collect_vec_info(vectorize_square(A, get_square(row, col)))
+        row_info = np.unique(np.concatenate((v_row, v_clean_square)))
+
+        if len(row_info) > len(best_row_info):
+            best_row = col
+            best_row_info = row_info
+
+    return best_row, best_row_info
 
 
-    return None
+def choose_field_in_square(A: np.array, square: int) -> tuple[int, int, np.array]:
+    '''
+    Returns the indices for a field in a square for which the most values are available.
+
+    Args:
+        A (np.array): sudoku as a matrix
+        square (int): square to look for the best field in it
+    Returns:
+        int: field row index for which most of the information is provided
+        int: field col index for which most of the information is provided
+        np.array: numbers to exclude from guess
+    '''
+    best_row = -1
+    best_col = -1
+    v_info = np.zeros(0)
+
+    v_square = vectorize_square(A, square)
+    # find 0 value indices
+    indexList = np.where(v_square == 0)
+    
+    for i in np.nditer(indexList):
+        # reconstruct row and col index
+        row, col = reconstruct_field_out_of_vectorized_square_index(square, i)
+        # collect row information
+        v_row = collect_vec_info(A[row])
+        # collect col information
+        v_col = collect_vec_info(A[ : , col])
+        v = np.unique(np.concatenate((v_row, v_col)))
+
+        if len(v) > len(v_info):
+            best_row = row
+            best_col = col
+            v_info = v
+    return best_row, best_col, v_info
 
 
-def simple_field_pick(A: np.array) -> (int, int, np.array):
-    square, max_square_val, square_vals = max_values_in_square(A)
-    row, max_row_val, row_vals = max_values_in_row(A)
-    col, max_col_val, col_vals = max_values_in_col(A)
+def reconstruct_index_area_for_square(square: int) -> tuple[int, int, int, int]:
+    '''
+    Reconstructs the original sudoku matrix index area for the square.
 
-    choose_field_in_row(A, row)
+    Args:
+        square (int): square number
+    Returns:
+        int: row start index
+        int: row end index
+        int: col start index
+        int: col end index
+    '''
+    row_range_start = int(square / DIM) * DIM
+    row_range_end = row_range_start + DIM - 1
+    col_range_start = (square % DIM) * DIM
+    col_range_end = col_range_start + DIM - 1
+
+    print(row_range_start)
+    print(row_range_end)
+    print(col_range_start)
+    print(col_range_end)
+
+
+def reconstruct_field_out_of_vectorized_square_index(square: int, index: int) -> tuple[int, int]:
+    '''
+    Reconstructs the original sudoku matrix index out of the given information.
+
+    Args:
+        square (int): square number
+        index (int): index of the element in the vectorized square
+    Returns:
+        int: row index
+        int: col index
+    '''
+    if index < 0 or index > DIM_GAME:
+        # not a valid index
+        return -1, -1
+    else:
+        # reconstruct row
+        # row in square + row in sudoku
+        row = int(index / DIM) + int(square / DIM) * DIM
+        # col in square + col in sudoku
+        col = (index % DIM) + (square % DIM) * DIM
+        return row, col
+
+
+def pick_field(A: np.array) -> (int, int, np.array):
+    '''
+    Picks a field depending on the max. number of values which are given.
+
+    Args:
+        A (np.array): Sudoku as a matrix
+    Returns:
+
+    '''
+    # completed rows, cols and squares are excluded
+    square, square_vals = square_with_max_number_of_values(A)
+    row, row_vals = row_with_max_number_of_values(A)
+    col, col_vals = col_with_max_number_of_values(A)
+
+    # choose the best field in the detected row/col/square
+    best_col, best_col_info = choose_field_in_row(A, row)
+    best_row, best_row_info = choose_field_in_col(A, col)
+    best_square_row, best_square_col, best_square_info = choose_field_in_square(A, square)
+
+    # accumulate inforation
+    col_vals = np.unique(np.concatenate((col_vals, best_col_info)))
+    row_vals = np.unique(np.concatenate((row_vals, best_row_info)))
+    square_vals = np.unique(np.concatenate((square_vals, best_square_info)))
+
+    print(col_vals)
+
+    print('best row:')
+    print('---------')
+    print('row: ' + str(row))
+    print('col: ' + str(best_col))
+    print(row_vals)
+    print(square_vals)
+
 
     #if max_square_val == 0 and max_row_val == 0 and max_col_val == 0:
         # solved!
@@ -205,12 +376,12 @@ def get_square(row, col) -> int:
     factor = (row - (row % DIM)) / DIM
     summand = (col - (col % DIM)) / DIM
 
-    return factor * DIM + summand
+    return int(factor * DIM + summand)
 
 
 def solve(A: np.array) -> np.array:
     #row, col = simple_field_pick(A)
-    simple_field_pick(A)
+    pick_field(A)
 
     return A
 
@@ -227,7 +398,6 @@ example1 = np.array([
     [0, 0, 6, 2, 5, 7, 0, 3, 0],
     [7, 2, 0, 0, 1, 0, 0, 0, 9]
 ])
-
 
 A = solve(example1)
 #print_sudoku(example1)
