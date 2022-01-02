@@ -87,7 +87,7 @@ def col_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
         np.array: values which are included
     '''
     col = 0
-    vals = np.zeros(1)
+    vals = np.zeros(0)
     for j in range(0, DIM_GAME):
         v = A[ : , j]
         # remove 0 values
@@ -122,15 +122,23 @@ def square_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
     return square, vals
 
 
-def make_guess(vals: np.array) -> int:
+def make_a_guess(vals: np.array) -> int:
     return choice([i for i in range(1, DIM_GAME + 1) if i not in vals])
 
 
+def find_missing_number(vals: np.array) -> int:
+    return int(CHECKSUM - np.sum(vals))
+
+
+
+
+'''
 def enter_guess_in_row(A: np.array, guess: int, row: int) -> (np.array, int):
     col = np.where(A[row] == 0)
     A[row, col] = guess
     
     return A, row, col
+'''
 
 
 
@@ -139,9 +147,6 @@ def is_valid_value(A: np.array, row: int, col: int) -> bool:
     # row
     # col
     # square
-    return False
-
-def is_solved(A: np.array) -> bool:
     return False
 
 
@@ -271,10 +276,7 @@ def reconstruct_index_area_for_square(square: int) -> tuple[int, int, int, int]:
     col_range_start = (square % DIM) * DIM
     col_range_end = col_range_start + DIM - 1
 
-    print(row_range_start)
-    print(row_range_end)
-    print(col_range_start)
-    print(col_range_end)
+    return row_range_start, row_range_end, col_range_start, col_range_end
 
 
 def reconstruct_field_out_of_vectorized_square_index(square: int, index: int) -> tuple[int, int]:
@@ -362,8 +364,27 @@ def do_safe_guess_only(A: np.array, guessList: list) -> np.array:
     Returns:
         np.array: sudoku with the entered guesses
     '''
-    # TODO
+    for guess in guessList:
+        if len(guess[2]) == 8:
+            # only one number is missing
+            A[guess[0], guess[1]] = find_missing_number(guess[2])
     return A
+
+
+def is_solved_fast_check(promissing_fields: list) -> bool:
+    complete_counter = 0
+    for field in promissing_fields:
+        if field[0] == -1 and field[1] == -1:
+            complete_counter += 1
+        else:
+            return False
+    if complete_counter == 3:
+        return True
+
+
+def is_solved(A: np.array) -> bool:
+    
+    return False
 
 
 def solve(A: np.array) -> np.array:
@@ -376,7 +397,10 @@ def solve(A: np.array) -> np.array:
         np.array: solved sudoku
     '''
     promising_fields = pick_promising_fields(A)
-    A = do_safe_guess_only(A, promising_fields)
+
+    while not is_solved_fast_check(promising_fields):
+        A = do_safe_guess_only(A, promising_fields)
+        promising_fields = pick_promising_fields(A)
 
     return A
 
@@ -394,5 +418,7 @@ example1 = np.array([
     [7, 2, 0, 0, 1, 0, 0, 0, 9]
 ])
 
+print_sudoku(example1)
 A = solve(example1)
+print(A)
 #print_sudoku(example1)
