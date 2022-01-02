@@ -182,7 +182,7 @@ def choose_field_in_row(A: np.array, row: int) -> tuple[int, np.array]:
         col_info = np.unique(np.concatenate((v_col, v_clean_square)))
 
         if len(col_info) > len(best_col_info):
-            best_col = col
+            best_col = int(col)
             best_col_info = col_info
 
     return best_col, best_col_info
@@ -212,7 +212,7 @@ def choose_field_in_col(A: np.array, col: int) -> tuple[int, np.array]:
         row_info = np.unique(np.concatenate((v_row, v_clean_square)))
 
         if len(row_info) > len(best_row_info):
-            best_row = col
+            best_row = int(row)
             best_row_info = row_info
 
     return best_row, best_row_info
@@ -248,8 +248,8 @@ def choose_field_in_square(A: np.array, square: int) -> tuple[int, int, np.array
         v = np.unique(np.concatenate((v_row, v_col)))
 
         if len(v) > len(v_info):
-            best_row = row
-            best_col = col
+            best_row = int(row)
+            best_col = int(col)
             v_info = v
     return best_row, best_col, v_info
 
@@ -300,60 +300,33 @@ def reconstruct_field_out_of_vectorized_square_index(square: int, index: int) ->
         return row, col
 
 
-def pick_field(A: np.array) -> (int, int, np.array):
+def pick_promising_fields(A: np.array) -> list:
     '''
-    Picks a field depending on the max. number of values which are given.
+    Picks three fields depending on the max. number of values provided for a row/col/square.
 
     Args:
         A (np.array): Sudoku as a matrix
     Returns:
-
+        tuple: row and col index for the best row-pick
+        tuple: row and col index for the best col-pick
+        tuple: row and col index for the best square-pick
     '''
     # completed rows, cols and squares are excluded
-    square, square_vals = square_with_max_number_of_values(A)
-    row, row_vals = row_with_max_number_of_values(A)
-    col, col_vals = col_with_max_number_of_values(A)
+    max_square, square_vals = square_with_max_number_of_values(A)
+    max_row, row_vals = row_with_max_number_of_values(A)
+    max_col, col_vals = col_with_max_number_of_values(A)
 
     # choose the best field in the detected row/col/square
-    best_col, best_col_info = choose_field_in_row(A, row)
-    best_row, best_row_info = choose_field_in_col(A, col)
-    best_square_row, best_square_col, best_square_info = choose_field_in_square(A, square)
+    max_row_best_col, max_row_best_col_info = choose_field_in_row(A, max_row)
+    max_col_best_row, max_col_best_row_info = choose_field_in_col(A, max_col)
+    max_square_best_row, max_square_best_col, max_square_info = choose_field_in_square(A, max_square)
 
     # accumulate inforation
-    col_vals = np.unique(np.concatenate((col_vals, best_col_info)))
-    row_vals = np.unique(np.concatenate((row_vals, best_row_info)))
-    square_vals = np.unique(np.concatenate((square_vals, best_square_info)))
+    col_vals = np.unique(np.concatenate((col_vals, max_col_best_row_info)))
+    row_vals = np.unique(np.concatenate((row_vals, max_row_best_col_info)))
+    square_vals = np.unique(np.concatenate((square_vals, max_square_info)))
 
-    print(col_vals)
-
-    print('best row:')
-    print('---------')
-    print('row: ' + str(row))
-    print('col: ' + str(best_col))
-    print(row_vals)
-    print(square_vals)
-
-
-    #if max_square_val == 0 and max_row_val == 0 and max_col_val == 0:
-        # solved!
-        # TODO
-    #if max_square_val > max_row_val and max_square_val > max_col_val:
-        # square
-
-        #guess = make_guess(square_vals)
-        # TODO
-        
-    #elif max_row_val > max_col_val:
-        # row
-        #guess = make_guess(row_vals)
-        #A, i, j = enter_guess_in_row(A, guess, row)
-        # TODO
-    #else:
-        # col
-        #guess = make_guess(col_vals)
-        # TODO
-    return None
-
+    return [(max_row, max_row_best_col, row_vals), (max_col_best_row, max_col, col_vals), (max_square_best_row, max_square_best_col, square_vals)]
 
 
 def print_sudoku(A: np.array):
@@ -379,9 +352,31 @@ def get_square(row, col) -> int:
     return int(factor * DIM + summand)
 
 
+def do_safe_guess_only(A: np.array, guessList: list) -> np.array:
+    '''
+    Enter only safe guesses into the sudoku.
+
+    Args:
+        A (np.array): sudoku as a matrix
+        guessList (list): one list entry consists of row index, column index and excluded values for the guess.
+    Returns:
+        np.array: sudoku with the entered guesses
+    '''
+    # TODO
+    return A
+
+
 def solve(A: np.array) -> np.array:
-    #row, col = simple_field_pick(A)
-    pick_field(A)
+    '''
+    Solves the passed sudoku.
+
+    Args:
+        A (np.array): sudoku to solve
+    Returns:
+        np.array: solved sudoku
+    '''
+    promising_fields = pick_promising_fields(A)
+    A = do_safe_guess_only(A, promising_fields)
 
     return A
 
