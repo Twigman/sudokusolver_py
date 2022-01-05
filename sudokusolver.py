@@ -63,7 +63,7 @@ def row_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
         int: row index
         np.array: values which are included
     '''
-    row = 0
+    row = -1
     vals = np.zeros(1)
     for i in range(0, DIM_GAME):
         v = A[i]
@@ -86,7 +86,7 @@ def col_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
         int: col index
         np.array: values which are included
     '''
-    col = 0
+    col = -1
     vals = np.zeros(0)
     for j in range(0, DIM_GAME):
         v = A[ : , j]
@@ -109,7 +109,7 @@ def square_with_max_number_of_values(A: np.array) -> tuple[int, np.array]:
         int: square number
         np.array: values which are included
     '''
-    square = 0
+    square = -1
     vals = np.zeros(0)
     for i in range(0, DIM_GAME):
         v = vectorize_square(A, i)
@@ -183,7 +183,7 @@ def choose_field_in_row(A: np.array, row: int) -> tuple[int, np.array]:
         # collect col information
         v_col = collect_vec_info(A[ : , col])
         # collect square information
-        v_clean_square = collect_vec_info(vectorize_square(A, get_square(row, col)))
+        v_clean_square = collect_vec_info(vectorize_square(A, get_square_for_coords(row, col)))
         col_info = np.unique(np.concatenate((v_col, v_clean_square)))
 
         if len(col_info) > len(best_col_info):
@@ -213,7 +213,7 @@ def choose_field_in_col(A: np.array, col: int) -> tuple[int, np.array]:
         # collect row information
         v_row = collect_vec_info(A[row])
         # collect square information
-        v_clean_square = collect_vec_info(vectorize_square(A, get_square(row, col)))
+        v_clean_square = collect_vec_info(vectorize_square(A, get_square_for_coords(row, col)))
         row_info = np.unique(np.concatenate((v_row, v_clean_square)))
 
         if len(row_info) > len(best_row_info):
@@ -330,6 +330,26 @@ def pick_promising_fields(A: np.array) -> list:
 
     return [(max_row, max_row_best_col, row_vals), (max_col_best_row, max_col, col_vals), (max_square_best_row, max_square_best_col, square_vals)]
 
+def count_blank_fields_in_row_in_square(square: int, v: np.array, row: int) -> int:
+    '''
+    Counts blank fields in a row in a square.
+
+    Args:
+        square (int): square number
+        v (np.array): verctorized square
+        row (int): row in which to search
+    Returns:
+        int: amount of blank fields
+    '''
+    counter = 0
+    blank_field_indices = np.where(v == 0)
+
+    for index in np.nditer(blank_field_indices):
+        # is the calculated row equals the asked row
+        if int(index / DIM) == row:
+            counter += 1
+    return counter
+
 
 def print_sudoku(A: np.array):
     row_counter = 0
@@ -347,14 +367,14 @@ def print_sudoku(A: np.array):
             print('-------------------------------')
 
 
-def get_square(row, col) -> int:
+def get_square_for_coords(row, col) -> int:
     factor = (row - (row % DIM)) / DIM
     summand = (col - (col % DIM)) / DIM
 
     return int(factor * DIM + summand)
 
 
-def do_safe_guess_only(A: np.array, guessList: list) -> np.array:
+def do_safe_guesses_only(A: np.array, guessList: list) -> tuple[np.array, int]:
     '''
     Enter only safe guesses into the sudoku.
 
@@ -363,12 +383,15 @@ def do_safe_guess_only(A: np.array, guessList: list) -> np.array:
         guessList (list): one list entry consists of row index, column index and excluded values for the guess.
     Returns:
         np.array: sudoku with the entered guesses
+        int: number of inserts
     '''
+    inserts = 0
     for guess in guessList:
         if len(guess[2]) == 8:
             # only one number is missing
             A[guess[0], guess[1]] = find_missing_number(guess[2])
-    return A
+            inserts += 1
+    return A, inserts
 
 
 def is_solved_fast_check(promissing_fields: list) -> bool:
@@ -382,9 +405,107 @@ def is_solved_fast_check(promissing_fields: list) -> bool:
         return True
 
 
+def look_for_solutions_by_crossing_lines_in_a_square(A: np.array) -> list:
+    '''
+    Looks for clear solutions in squares by checking the crossing rows and columns.
+
+    Args:
+        A (np.array): sudoku as a matrix
+    Returns:
+        row: row
+        col: col
+        solution: unabiguous value
+    '''
+    square = 7
+
+    v_square = vectorize_square(A, square)
+    v_square_info = collect_vec_info(v_square)
+    zero_indices = np.where(v_square == 0)
+    vals = []
+
+    # check fields in square for solutions
+    for zero_index in np.nditer(zero_indices):
+        # reset field info
+        row_info_list = []
+        col_info_list = []
+        # current index
+        row, col = reconstruct_field_out_of_vectorized_square_index(square, zero_index)
+        print('field: ' + str(row) + ', ' + str(col))
+        # get coords
+        row_start, row_end, col_start, col_end = reconstruct_index_area_for_square(square)
+
+        # check rows
+        for r in range(row_start, row_end + 1):
+            # expect of the current index
+            if r == row:
+                continue
+            else:
+                row_info_list.append(collect_vec_info(A[r]))
+
+        # detect values which are in both rows
+        intersec_row = row_info_list[0]
+
+        for i in range(1, len(row_info_list)):
+            intersec_row = np.intersect1d(intersec_row, row_info_list[i])
+
+        # remove values which are already in the square
+        intersec_row = np.setdiff1d(intersec_row, v_square_info)
+
+        print('intersec_row: ' + str(intersec_row))
+
+        print(len(intersec_row))
+        print(row)
+        print(count_blank_fields_in_row_in_square(square, v_square, row))
+
+        # insert value if this is the only blank field in this row in the square
+        if len(intersec_row) > 0 and count_blank_fields_in_row_in_square(square, v_square, row) == 1:
+            vals.append((row, col, intersec_row[0]))
+            # continue with the next row
+            continue
+
+        # check cols if a number was found
+        if len(intersec_row) != 0:
+            for c in range(col_start, col_end + 1):
+                if c == col:
+                    # expect of the current index
+                    continue
+                else:
+                    col_info_list.append(collect_vec_info(A[ : , c]))
+
+            # detect values which are in all col
+            intersec_col = col_info_list[0]
+
+            for i in range(1, len(col_info_list)):
+                intersec_col = np.intersect1d(intersec_col, col_info_list[i])
+
+            # remove values which are already in the square
+            intersec_col = np.setdiff1d(intersec_col, v_square_info)
+
+            print('intersec_col: ' + str(intersec_col))
+    return vals
+
+
+
+
+
 def is_solved(A: np.array) -> bool:
-    
-    return False
+    '''
+    Checks if the sudoku is completed.
+
+    Args:
+        A (np.array): sudoku as a matrix
+    Returns:
+        bool: True if the sudoku is complete; False if fields are blank
+    '''
+    # fields which contain 0
+    rowList, colList = np.where(A == 0)
+
+    if len(rowList) == 0 and len(colList) == 0:
+        # TODO?
+        # check the sudoku
+        return True
+    else:
+        return False
 
 
 def solve(A: np.array) -> np.array:
@@ -396,18 +517,24 @@ def solve(A: np.array) -> np.array:
     Returns:
         np.array: solved sudoku
     '''
-    promising_fields = pick_promising_fields(A)
+    iteration = 0
+    inserts_per_iter = -1
 
-    while not is_solved_fast_check(promising_fields):
-        A = do_safe_guess_only(A, promising_fields)
+    while inserts_per_iter != 0:
         promising_fields = pick_promising_fields(A)
+        print(promising_fields)
+        A, inserts_per_iter = do_safe_guesses_only(A, promising_fields)
+        #indirect_solutions = look_for_solutions_by_crossing_lines_in_a_square(A)
+        #print(indirect_solutions)
+        iteration += 1
 
+    print('solving stopped after ' + str(iteration) + ' iterations')
     return A
 
 A = np.zeros((DIM_GAME, DIM_GAME))
 
 example1 = np.array([
-    [0, 0, 9, 0, 0, 0, 0, 1, 5],
+    [0, 0, 9, 3, 0, 0, 0, 1, 5],
     [5, 0, 0, 4, 0, 9, 7, 0, 0],
     [4, 7, 3, 5, 6, 1, 9, 0, 0],
     [0, 0, 0, 7, 4, 0, 0, 9, 6],
@@ -418,7 +545,22 @@ example1 = np.array([
     [7, 2, 0, 0, 1, 0, 0, 0, 9]
 ])
 
-print_sudoku(example1)
-A = solve(example1)
-print(A)
+test1 = np.array([
+    [0, 0, 9, 3, 0, 0, 0, 1, 5],
+    [5, 0, 0, 4, 0, 9, 7, 0, 0],
+    [4, 7, 3, 5, 6, 1, 9, 0, 0],
+    [0, 0, 0, 7, 4, 0, 0, 9, 6],
+    [0, 0, 0, 0, 0, 0, 0, 8, 0],
+    [0, 0, 4, 8, 3, 0, 1, 5, 0],
+    [1, 3, 5, 9, 0, 6, 0, 0, 2],
+    [0, 8, 6, 2, 5, 7, 0, 3, 0],
+    [7, 2, 0, 0, 1, 0, 8, 0, 9]
+])
 #print_sudoku(example1)
+#A = solve(example1)
+#print_sudoku(A)
+#print_sudoku(example1)
+#look_for_solutions_by_crossing_lines_in_a_square(example1)
+#print('--------------------------------------------')
+res = look_for_solutions_by_crossing_lines_in_a_square(test1)
+print(res)
