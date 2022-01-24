@@ -439,6 +439,26 @@ def is_solved_fast_check(promissing_fields: list) -> bool:
         return True
 
 
+def intersec_values(value_list: list, square_arr: np.array) -> np.array:
+    '''
+    Finds the intersection of all arrays.
+
+    Args:
+        value_list (list): list of np.arrays (row or column collection)
+        square_arr (np.array): values in the square
+    Returns:
+        np.array: Intersection of all np.arrays
+    '''
+    # store the first array for the loop
+    intersec_arr = value_list[0]
+
+    for i in range(1, len(value_list)):
+        intersec_arr = np.intersect1d(intersec_arr, value_list[i])
+
+    # remove values which are already in the square
+    return np.setdiff1d(intersec_arr, square_arr)
+
+
 def look_for_solutions_by_crossing_lines_in_a_square(A: np.array) -> list:
     '''
     Looks for clear solutions in squares by checking the crossing rows and columns.
@@ -450,75 +470,59 @@ def look_for_solutions_by_crossing_lines_in_a_square(A: np.array) -> list:
         col: col
         solution: unabiguous value
     '''
+    square = 4
     vals = []
-    for square in range(DIM_GAME):
-        print('checking square ' + str(square))
-        v_square = vectorize_square(A, square)
-        v_square_info = collect_vec_info(v_square)
-        zero_indices = np.where(v_square == 0)
+    #for square in range(DIM_GAME):
+    print('checking square ' + str(square))
+    v_square = vectorize_square(A, square)
+    v_square_info = collect_vec_info(v_square)
+    zero_indices = np.where(v_square == 0)
 
-        # check fields in square for solutions
-        if len(zero_indices[0]) > 0:
-            for zero_index in np.nditer(zero_indices):
-                # reset field info
-                row_info_list = []
-                col_info_list = []
-                # current index
-                row, col = reconstruct_field_out_of_vectorized_square_index(square, zero_index)
-                print('field: ' + str(row) + ', ' + str(col))
-                # get coords
-                row_start, row_end, col_start, col_end = reconstruct_index_area_for_square(square)
+    # check fields in square for solutions
+    if len(zero_indices[0]) > 0:
+        for zero_index in np.nditer(zero_indices):
+            # reset field info
+            row_info_list = []
+            col_info_list = []
+            # current index
+            row, col = reconstruct_field_out_of_vectorized_square_index(square, zero_index)
+            print('field: ' + str(row) + ', ' + str(col))
+            # get coords
+            row_start, row_end, col_start, col_end = reconstruct_index_area_for_square(square)
 
-                # check rows
-                for r in range(row_start, row_end + 1):
-                    # expect of the current index
-                    if r == row:
+            # check rows
+            for r in range(row_start, row_end + 1):
+                # expect of the current index
+                if r == row:
+                    continue
+                else:
+                    row_info_list.append(collect_vec_info(A[r]))
+
+            intersec_row = intersec_values(row_info_list, v_square_info)
+
+            # insert value if this is the only blank field in this row in the square
+            if len(intersec_row) > 0 and count_blank_fields_in_row_in_square(square, v_square, calc_relative_row_in_square(row)) == 1:
+                print('intersec_row')
+                print(intersec_row)
+                vals.append((row, col, intersec_row[0]))
+                # continue with the next row
+                continue
+
+            # check cols if a number was found
+            if len(intersec_row) > 0:
+                for c in range(col_start, col_end + 1):
+                    if c == col:
+                        # expect of the current index
                         continue
                     else:
-                        row_info_list.append(collect_vec_info(A[r]))
+                        # store column values 
+                        col_info_list.append(collect_vec_info(A[ : , c]))
 
-                # detect values which are in both rows
-                intersec_row = row_info_list[0]
+                intersec_col = intersec_values(col_info_list, v_square_info)
+                print(intersec_col)
 
-                for i in range(1, len(row_info_list)):
-                    intersec_row = np.intersect1d(intersec_row, row_info_list[i])
-
-                # remove values which are already in the square
-                intersec_row = np.setdiff1d(intersec_row, v_square_info)
-
-                # insert value if this is the only blank field in this row in the square
-                if len(intersec_row) > 0 and count_blank_fields_in_row_in_square(square, v_square, calc_relative_row_in_square(row)) == 1:
-                    print('intersec_row')
-                    print(intersec_row)
-                    vals.append((row, col, intersec_row[0]))
-                    # continue with the next row
-                    continue
-
-                # check cols if a number was found
-                if len(intersec_row) > 0:
-                    for c in range(col_start, col_end + 1):
-                        if c == col:
-                            # expect of the current index
-                            continue
-                        else:
-                            col_info_list.append(collect_vec_info(A[ : , c]))
-
-                    # detect values which are in all cols
-                    intersec_col = col_info_list[0]
-
-                    for i in range(1, len(col_info_list)):
-                        intersec_col = np.intersect1d(intersec_col, col_info_list[i])
-
-                    # remove values which are already in the square
-                    intersec_col = np.setdiff1d(intersec_col, v_square_info)
-                    print(intersec_col)
-
-                    # TODO
     print(vals)
     return vals
-
-
-
 
 
 def is_solved(A: np.array) -> bool:
@@ -606,9 +610,9 @@ example3 = np.array([
 
 #print_sudoku(example1)
 #A = solve(example2)
-A = solve(example1)
-#A = solve(example3)
-print_sudoku(A)
+#A = solve(example1)
+A = solve(example3)
+#print_sudoku(A)
 #print_sudoku(example1)
 #look_for_solutions_by_crossing_lines_in_a_square(example1)
 #print('--------------------------------------------')
