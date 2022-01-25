@@ -470,6 +470,7 @@ def intersec_values(value_list: list, square_arr: np.array) -> np.array:
 def look_for_solutions_by_crossing_lines_in_a_square(A: np.array) -> list:
     '''
     Looks for clear solutions in squares by checking the crossing rows and columns.
+    This method works only for 9x9 sudokus.
 
     solves:
     - only one value is missing
@@ -514,9 +515,9 @@ def look_for_solutions_by_crossing_lines_in_a_square(A: np.array) -> list:
                     row_info_list.append((r, collect_vec_info(A[r])))
             # all promising row values
             intersec_row = intersec_values(row_info_list, v_square_info)
-
+            counter_blank_fields_in_row = count_blank_fields_in_row_in_square(v_square, calc_relative_index_in_square(row))
             # insert value, if this is the only blank field in this row in the square
-            if len(intersec_row) > 0 and count_blank_fields_in_row_in_square(v_square, calc_relative_index_in_square(row)) == 1:
+            if len(intersec_row) > 0 and counter_blank_fields_in_row == 1:
                 vals.append((row, col, intersec_row[0]))
                 continue
 
@@ -543,11 +544,15 @@ def look_for_solutions_by_crossing_lines_in_a_square(A: np.array) -> list:
                 vals.append((row, col, intersec_field[0]))
                 continue
 
-            if row == 3 and col == 4:
+            if len(intersec_row) > 0 and counter_blank_fields_in_row == 2:
+                # are there enough information to exclude a column?
                 print('inter row')
                 print(intersec_row)
                 print('inter col')
-                print(intersec_col)
+                print(col_info_list)
+            
+            
+
     print('vals')
     print(vals)
     return vals
@@ -648,10 +653,22 @@ example6 = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0, 0]
 ])
 
+example7 = np.array([
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 2, 0, 0, 0, 0], # 5, 3 = 1
+    [0, 0, 0, 0, 0, 1, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0]
+])
+
 #print_sudoku(example1)
 #A = solve(example2)
 #A = solve(example1)
-A = solve(example6)
+A = solve(example7)
 #print_sudoku(A)
 #print_sudoku(example1)
 #look_for_solutions_by_crossing_lines_in_a_square(example1)
